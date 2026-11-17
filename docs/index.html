@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bank Churn Risk Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: form on the left, live result on the right; data findings below */
+  --bg:#f5f7f7; --surface:#ffffff; --ink:#18252a; --muted:#5b6b70; --line:#dbe2e3;
+  --accent:#0f5c63; --accent-soft:#e3eff0;
+  --low:#2f7d4f; --med:#b7791f; --high:#b23a3a;
+  --display:"IBM Plex Serif", Georgia, serif;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1719; --surface:#162226; --ink:#e4ecee; --muted:#93a5aa; --line:#29393e;
+    --accent:#5fb7bf; --accent-soft:#1d3337; --low:#5cc28a; --med:#e0a84a; --high:#e8706d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#162226; --ink:#e4ecee; --muted:#93a5aa; --line:#29393e;
+  --accent:#5fb7bf; --accent-soft:#1d3337; --low:#5cc28a; --med:#e0a84a; --high:#e8706d; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 48px;display:grid;gap:28px}
+header{display:grid;gap:6px}
+header h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,4vw,34px);margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:68ch}
+.main{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.main{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.card h2{font-family:var(--display);font-size:19px;font-weight:600;margin:0 0 14px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+@media (max-width:440px){form{grid-template-columns:1fr}}
+.field{display:grid;gap:5px}
+.field label{font-size:13px;font-weight:500;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.field label output{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-size:14px;color:var(--ink);background:var(--bg)}
+.seg input:checked + label{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg input:checked + label{color:#0f1719}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg input:checked + label{color:#0f1719}}
+.seg input:focus-visible + label, input:focus-visible, select:focus-visible, button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.presets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+button{font:inherit;font-size:13px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:999px;padding:5px 12px;cursor:pointer}
+button:hover{background:var(--accent-soft)}
+.result{position:sticky;top:16px;display:grid;gap:16px}
+.prob{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.prob .big{font-family:var(--mono);font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.chip{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;color:#fff}
+.chip.Low{background:var(--low)} .chip.Medium{background:var(--med)} .chip.High{background:var(--high)}
+.meter{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--low) 0 30%,var(--med) 30% 60%,var(--high) 60% 100%);opacity:.9}
+.meter .pin{position:absolute;top:-5px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-2px);transition:left .25s}
+@media (prefers-reduced-motion: reduce){.meter .pin{transition:none}}
+.scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.verdict{margin:0;font-weight:500}
+.actions{margin:0;padding-left:18px;display:grid;gap:6px}
+.drivers{display:grid;gap:8px}
+.drv{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:14px;border-top:1px solid var(--line);padding-top:8px}
+.drv span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.small{font-size:13px;color:var(--muted);margin:0}
+.findings{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:820px){.findings{grid-template-columns:1fr}}
+.bars{display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:72px 1fr 52px;align-items:center;gap:10px;font-size:13px}
+.track{height:14px;background:var(--accent-soft);border-radius:3px;overflow:hidden}
+.fill{height:100%;background:var(--accent)}
+.fill.hot{background:var(--high)}
+.bar .v{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.about{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media (max-width:820px){.about{grid-template-columns:1fr 1fr}}
+.stat .n{font-family:var(--mono);font-size:24px;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted)}
+footer{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bank Churn Risk Checker</h1>
+    <p>Enter a customer's details to see how likely they are to leave the bank, and what the retention team could do about it. The model is a Random Forest trained on 10,000 real bank customers (20.4% of them left).</p>
+  </header>
+
+  <div class="main">
+    <section class="card" aria-labelledby="f-h">
+      <h2 id="f-h">Customer details</h2>
+      <form id="f" autocomplete="off">
+        <div class="presets">Try:
+          <button type="button" data-preset="risky">High-risk example</button>
+          <button type="button" data-preset="loyal">Loyal example</button>
+          <button type="button" data-preset="bundle">3-product customer</button>
+        </div>
+        <div class="field"><label for="country">Country</label>
+          <select id="country"><option>France</option><option>Germany</option><option>Spain</option></select></div>
+        <div class="field"><label>Gender</label>
+          <div class="seg"><input type="radio" name="gender" id="g-f" value="Female"><label for="g-f">Female</label><input type="radio" name="gender" id="g-m" value="Male" checked><label for="g-m">Male</label></div></div>
+        <div class="field"><label for="age">Age <output id="age-o"></output></label><input type="range" id="age" min="18" max="92" value="45"></div>
+        <div class="field"><label for="tenure">Years with bank <output id="tenure-o"></output></label><input type="range" id="tenure" min="0" max="10" value="5"></div>
+        <div class="field"><label for="credit_score">Credit score <output id="credit_score-o"></output></label><input type="range" id="credit_score" min="350" max="850" value="650"></div>
+        <div class="field"><label for="products_number">Number of products</label>
+          <select id="products_number"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+        <div class="field"><label for="balance">Account balance</label><input type="number" id="balance" min="0" max="260000" step="1000" value="90000"></div>
+        <div class="field"><label for="estimated_salary">Estimated salary</label><input type="number" id="estimated_salary" min="0" max="200000" step="1000" value="100000"></div>
+        <div class="field"><label>Active member?</label>
+          <div class="seg"><input type="radio" name="active" id="a-y" value="1" checked><label for="a-y">Yes</label><input type="radio" name="active" id="a-n" value="0"><label for="a-n">No</label></div></div>
+        <div class="field"><label>Has credit card?</label>
+          <div class="seg"><input type="radio" name="card" id="c-y" value="1" checked><label for="c-y">Yes</label><input type="radio" name="card" id="c-n" value="0"><label for="c-n">No</label></div></div>
+      </form>
+    </section>
+
+    <aside class="result" aria-live="polite">
+      <section class="card">
+        <h2>Churn risk</h2>
+        <div class="prob"><span class="big" id="p">--</span><span class="chip" id="band">--</span></div>
+        <div style="margin-top:14px" class="meter"><div class="pin" id="pin" style="left:0"></div></div>
+        <div class="scale"><span>0%</span><span>30%</span><span>60%</span><span>100%</span></div>
+        <p class="verdict" id="verdict" style="margin-top:12px"></p>
+      </section>
+      <section class="card">
+        <h2>Suggested next step</h2>
+        <ul class="actions" id="actions"></ul>
+      </section>
+      <section class="card">
+        <h2>How similar customers behaved</h2>
+        <div class="drivers" id="drivers"></div>
+        <p class="small" style="margin-top:10px">Actual churn rate of customers in the same group, from the dataset.</p>
+      </section>
+    </aside>
+  </div>
+
+  <section class="card" aria-labelledby="d-h">
+    <h2 id="d-h">What the data says</h2>
+    <div class="findings">
+      <div><p class="small">Churn rate by country</p><div class="bars" id="b-country"></div></div>
+      <div><p class="small">Churn rate by age group</p><div class="bars" id="b-age"></div></div>
+      <div><p class="small">Churn rate by number of products</p><div class="bars" id="b-prod"></div></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="m-h">
+    <h2 id="m-h">About the model</h2>
+    <div class="about">
+      <div class="stat"><div class="n">0.854</div><div class="l">ROC-AUC of the full model (200 trees) on test data</div></div>
+      <div class="stat"><div class="n" id="demo-auc">0.864</div><div class="l">ROC-AUC of this lighter demo model (60 trees, depth 8) on the same test data</div></div>
+      <div class="stat"><div class="n">67%</div><div class="l">of real churners caught at the 0.3 threshold</div></div>
+      <div class="stat"><div class="n">51%</div><div class="l">of lost balance reached by calling the top 1,000 customers ranked by risk × balance</div></div>
+    </div>
+    <p class="small" style="margin-top:14px">The full model is too large to run in a browser, so this page uses a smaller Random Forest trained the same way. Risk bands: Low below 30%, Medium 30–60%, High 60% and above. Learning project on the public Kaggle "Bank Customer Churn Dataset"; not for real customer decisions.</p>
+  </section>
+
+  <footer>
+    <span>Bank Customer Churn Analysis · Mayank Srivastava</span>
+    <span>Code, notebooks, SQL and Power BI guide: <a href="https://github.com/mayank260201/bank-customer-churn-analysis">github.com/mayank260201/bank-customer-churn-analysis</a></span>
+  </footer>
+</div>
+
+<script>
+// churn rates from the dataset (see sql/04_churn_analysis.sql)
+const RATES = {
+  country: {France:16.15, Germany:32.44, Spain:16.67},
+  gender: {Female:25.07, Male:16.46},
+  age: {"18-29":7.56, "30-39":10.88, "40-49":30.79, "50-59":56.04, "60+":27.95},
+  products: {1:27.71, 2:7.58, 3:82.71, 4:100.0},
+  active: {1:14.27, 0:26.85}
+};
+const OVERALL = 20.37;
+const THRESHOLD = 0.3;
+let MODEL = null;
+
+const $ = id => document.getElementById(id);
+function ageGroup(a){ return a<30?"18-29":a<40?"30-39":a<50?"40-49":a<60?"50-59":"60+"; }
+function radio(name){ return document.querySelector(`input[name=${name}]:checked`).value; }
+
+function readCustomer(){
+  return {
+    credit_score:+$("credit_score").value, country:$("country").value, gender:radio("gender"),
+    age:+$("age").value, tenure:+$("tenure").value, balance:+$("balance").value||0,
+    products_number:+$("products_number").value, credit_card:+radio("card"),
+    active_member:+radio("active"), estimated_salary:+$("estimated_salary").value||0
+  };
+}
+
+// same feature engineering as the notebooks (no scaling needed for Random Forest)
+function toFeatures(c){
+  const row = {credit_score:c.credit_score, gender:c.gender==="Female"?1:0, age:c.age, tenure:c.tenure,
+    balance:c.balance, products_number:c.products_number, credit_card:c.credit_card,
+    active_member:c.active_member, estimated_salary:c.estimated_salary,
+    country_Germany:c.country==="Germany"?1:0, country_Spain:c.country==="Spain"?1:0};
+  return MODEL.features.map(f => row[f]);
+}
+
+function predict(x){
+  let sum = 0;
+  for (const t of MODEL.trees){
+    let n = 0;
+    while (t.l[n] !== -1){ n = x[t.f[n]] <= t.t[n] ? t.l[n] : t.r[n]; }
+    sum += t.p[n];
+  }
+  return sum / MODEL.trees.length;
+}
+
+function band(p){ return p>=0.6?"High":p>=THRESHOLD?"Medium":"Low"; }
+
+function suggestions(c, b){
+  const out = [];
+  if (b==="Low"){ out.push("No action needed. Keep in the normal service cycle."); }
+  if (b!=="Low" && c.active_member===0) out.push("Re-engage: relationship-manager check-in and app nudges. Inactive customers churn about 2× more.");
+  if (c.products_number===1 && b!=="Low") out.push("Offer a relevant second product. Customers with 2 products are the most loyal (7.6% churn).");
+  if (c.products_number>=3) out.push("Review this customer's product bundle. 83–100% of 3–4 product customers left, which points to a problem with those bundles.");
+  const ag = ageGroup(c.age);
+  if ((ag==="50-59"||ag==="40-49") && b!=="Low") out.push("Offer a wealth / retirement-planning conversation. Ages 40–59 churn the most.");
+  if (c.country==="Germany" && b!=="Low") out.push("Germany churns 2× more than France or Spain. Add this customer to the Germany pilot list.");
+  if (b==="High" && c.balance>=100000) out.push("Priority call: high risk and a large balance (top of the risk × balance list).");
+  if (out.length===0) out.push("Add to the monthly watch list and re-score next month.");
+  return out;
+}
+
+function render(){
+  if (!MODEL) return;
+  for (const id of ["age","tenure","credit_score"]) $(id+"-o").textContent = $(id).value;
+  const c = readCustomer();
+  const p = predict(toFeatures(c));
+  const b = band(p);
+  $("p").textContent = Math.round(p*100) + "%";
+  const chip = $("band"); chip.textContent = b + " risk"; chip.className = "chip " + b;
+  $("pin").style.left = (p*100).toFixed(1) + "%";
+  $("verdict").textContent = p>=THRESHOLD
+    ? `Flagged as a likely churner (score ≥ ${THRESHOLD*100}%). Bank average churn is ${OVERALL}%.`
+    : `Not flagged (score below ${THRESHOLD*100}%). Bank average churn is ${OVERALL}%.`;
+  $("actions").innerHTML = suggestions(c,b).map(s=>`<li>${s}</li>`).join("");
+  const ag = ageGroup(c.age);
+  const rows = [
+    [`Country: ${c.country}`, RATES.country[c.country]],
+    [`Age group: ${ag}`, RATES.age[ag]],
+    [`${c.products_number} product${c.products_number>1?"s":""}`, RATES.products[c.products_number]],
+    [c.active_member? "Active member":"Inactive member", RATES.active[c.active_member]],
+    [`Gender: ${c.gender}`, RATES.gender[c.gender]]
+  ];
+  $("drivers").innerHTML = rows.map(([k,v])=>`<div class="drv"><span>${k}</span><span>${v.toFixed(1)}%</span></div>`).join("");
+}
+
+function bars(el, obj){
+  const max = 100;
+  el.innerHTML = Object.entries(obj).map(([k,v]) =>
+    `<div class="bar"><span>${k}</span><div class="track"><div class="fill ${v>=OVERALL*1.4?'hot':''}" style="width:${v/max*100}%"></div></div><span class="v">${v.toFixed(1)}%</span></div>`).join("");
+}
+
+const PRESETS = {
+  risky:{country:"Germany",gender:"Female",age:52,tenure:3,credit_score:600,products_number:1,balance:130000,estimated_salary:90000,active:"0",card:"1"},
+  loyal:{country:"France",gender:"Male",age:33,tenure:7,credit_score:700,products_number:2,balance:0,estimated_salary:80000,active:"1",card:"1"},
+  bundle:{country:"Spain",gender:"Male",age:38,tenure:4,credit_score:680,products_number:3,balance:110000,estimated_salary:120000,active:"1",card:"1"}
+};
+function applyPreset(name){
+  const p = PRESETS[name];
+  for (const k of ["country","age","tenure","credit_score","products_number","balance","estimated_salary"]) $(k).value = p[k];
+  document.querySelector(`input[name=gender][value=${p.gender}]`).checked = true;
+  document.querySelector(`input[name=active][value="${p.active}"]`).checked = true;
+  document.querySelector(`input[name=card][value="${p.card}"]`).checked = true;
+  render();
+}
+
+$("f").addEventListener("input", render);
+$("f").addEventListener("change", render);
+$("f").addEventListener("submit", e => e.preventDefault());
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+
+bars($("b-country"), RATES.country);
+bars($("b-age"), RATES.age);
+bars($("b-prod"), {"1 product":RATES.products[1],"2 products":RATES.products[2],"3 products":RATES.products[3],"4 products":RATES.products[4]});
+
+fetch("model.json").then(r => r.json()).then(m => { MODEL = m; $("demo-auc").textContent = m.auc.toFixed(3); applyPreset("risky"); })
+  .catch(() => { $("verdict").textContent = "Could not load the model file (model.json). Open this page through a web server, not as a local file."; });
+</script>
+</body>
+</html>
