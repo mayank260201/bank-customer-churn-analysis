@@ -1,0 +1,10 @@
+{
+  "name": "Bank Churn",
+  "dataColors": ["#1F4E78", "#C0504D", "#2E75B6", "#F4B183", "#70AD47", "#7F7F7F"],
+  "background": "#FFFFFF",
+  "foreground": "#262626",
+  "tableAccent": "#1F4E78",
+  "good": "#70AD47",
+  "neutral": "#F4B183",
+  "bad": "#C0504D"
+}
