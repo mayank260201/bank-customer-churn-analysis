@@ -1,0 +1,11 @@
+customer_id,credit_score,country,gender,age,tenure,balance,products_number,credit_card,active_member,estimated_salary
+15585901,717,Spain,Male,35,1,0.0,3,0,0,174770.14
+15726945,677,France,Female,72,8,0.0,2,1,1,153604.44
+15683553,788,France,Female,33,5,0.0,2,0,0,116978.19
+15631310,537,France,Female,53,3,0.0,1,1,1,91406.62
+15800326,717,Spain,Female,39,6,0.0,2,1,0,93275.61
+15787071,650,Spain,Male,41,9,0.0,2,0,1,191599.67
+15645569,762,Spain,Female,26,7,123709.46,2,1,1,169654.57
+15691446,735,Spain,Male,29,10,0.0,2,1,1,95025.27
+15672330,678,France,Female,31,1,0.0,2,0,1,130446.65
+15595324,579,Germany,Female,39,5,117833.3,3,0,0,5831.0
