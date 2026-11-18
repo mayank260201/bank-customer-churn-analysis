@@ -100,7 +100,11 @@ bank-customer-churn-analysis/
 
 ## 🚀 How to Run
 
+Needs **Python 3.11+**. Using a virtual environment keeps these versions separate from your other projects:
+
 ```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows  (macOS/Linux: source .venv/bin/activate)
 pip install -r requirements.txt
 
 # 1. run the notebooks in order (01 → 05) in Jupyter
@@ -114,7 +118,7 @@ python scripts/predict.py data/sample/new_customers_sample.csv
 - **Power BI:** see [powerbi/POWER_BI_GUIDE.md](powerbi/POWER_BI_GUIDE.md)
 - **Excel:** open `excel/churn_summary.xlsx`
 
-> If `predict.py` can't load the model (different scikit-learn version), just re-run `notebooks/05_model_export.ipynb` – it saves the model again.
+> If `predict.py` can't load the model (different scikit-learn version), install the pinned versions from `requirements.txt`, or re-run `notebooks/05_model_export.ipynb` – it saves the model again.
 
 ## 🛠️ Fixes & Lessons Learned
 
